@@ -1,0 +1,4398 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,
+    initial-scale=1,
+    maximum-scale=1,
+    user-scalable=no,
+    viewport-fit=cover"
+  >
+
+  <meta name="theme-color" content="#dff3ff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <title>Absensi QR</title>
+
+  <!--
+    Library scanner QR.
+    Digunakan untuk membaca QR melalui kamera HP/laptop.
+  -->
+  <!-- ZXing for JavaScript Browser: @zxing/browser 0.2.1 -->
+  <script
+    src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js"
+    >
+  </script>
+
+  <style>
+
+    /* =====================================================
+       ROOT
+    ===================================================== */
+
+    :root {
+      --bg: #eaf7ff;
+      --bg-soft: #dff3ff;
+
+      --card: rgba(255, 255, 255, 0.96);
+      --card-soft: #f5fbff;
+
+      --blue: #69bff7;
+      --blue-dark: #3278c8;
+      --blue-light: #dff4ff;
+
+      --text: #153b5c;
+      --text-soft: #6d8ca6;
+
+      --border: #c9e6f7;
+
+      --danger: #e05b68;
+      --danger-light: #ffe9ed;
+
+      --warning: #e8a52c;
+      --warning-light: #fff3d8;
+
+      --shadow:
+        0 10px 30px rgba(44, 104, 160, 0.10);
+
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+
+    /* =====================================================
+       RESET
+    ===================================================== */
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+
+      width: 100%;
+      min-height: 100%;
+
+      background: linear-gradient(145deg, #cdeeff, #f3fbff 48%, #d9f2ff);
+
+      font-family:
+        Inter,
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(.98);
+    }
+
+
+    /* =====================================================
+       APP SHELL
+    ===================================================== */
+
+    .app-shell {
+      width: 100%;
+      max-width: 430px;
+
+      min-height: 100vh;
+
+      background: var(--bg);
+
+      position: relative;
+
+      overflow-x: hidden;
+    }
+
+
+    /* =====================================================
+       UTILITY
+    ===================================================== */
+
+    .hidden,
+    #loginScreen.hidden,
+    #appScreen.hidden {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+
+    /* =====================================================
+       LOGIN
+    ===================================================== */
+
+    #loginScreen {
+      min-height: 100vh;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding:
+        calc(24px + var(--safe-top))
+        20px
+        calc(24px + var(--safe-bottom));
+
+      position: relative;
+      overflow: hidden;
+
+      background:
+        radial-gradient(circle at 15% 15%, rgba(255,255,255,.95) 0 4px, transparent 5px),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,.9) 0 3px, transparent 4px),
+        radial-gradient(circle at 25% 78%, rgba(255,255,255,.9) 0 3px, transparent 4px),
+        radial-gradient(circle at 88% 75%, rgba(255,255,255,.85) 0 5px, transparent 6px),
+        linear-gradient(145deg, #c7ecff 0%, #effaff 42%, #bfe7ff 100%);
+    }
+
+    #loginScreen::before,
+    #loginScreen::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(2px);
+    }
+
+    #loginScreen::before {
+      width: 260px;
+      height: 260px;
+      left: -120px;
+      top: -90px;
+      background: rgba(255,255,255,.58);
+      box-shadow:
+        180px 420px 0 rgba(255,255,255,.30),
+        560px 120px 0 rgba(255,255,255,.25);
+    }
+
+    #loginScreen::after {
+      width: 220px;
+      height: 220px;
+      right: -100px;
+      bottom: -80px;
+      background: rgba(83,180,239,.20);
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 380px;
+
+      background: linear-gradient(145deg, rgba(255,255,255,.97), rgba(239,250,255,.94));
+
+      border:
+        1px solid rgba(255,255,255,.85);
+
+      border-radius: 28px;
+
+      padding: 28px 22px;
+
+      box-shadow:
+        0 24px 70px rgba(46, 126, 178, .22),
+        inset 0 1px 0 rgba(255,255,255,.95);
+    }
+
+    .login-logo {
+      width: 70px;
+      height: 70px;
+
+      margin:
+        0 auto
+        18px;
+
+      border-radius: 22px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #bceeff,
+          #58b8ee 48%,
+          #3278c8
+        );
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: #ffffff;
+
+      font-size: 24px;
+      font-weight: 900;
+
+      box-shadow:
+        0 12px 26px
+        rgba(47, 128, 237, .28);
+    }
+
+    .login-title {
+      text-align: center;
+
+      font-size: 25px;
+
+      font-weight: 900;
+
+      margin: 0 0 7px;
+    }
+
+    .login-subtitle {
+      text-align: center;
+
+      color: var(--text-soft);
+
+      font-size: 13px;
+
+      line-height: 1.5;
+
+      margin-bottom: 25px;
+    }
+
+
+    /* =====================================================
+       FORM
+    ===================================================== */
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+
+      font-size: 11px;
+
+      font-weight: 900;
+
+      margin-bottom: 7px;
+
+      letter-spacing: .4px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+
+      border:
+        1px solid var(--border);
+
+      background:
+        var(--card-soft);
+
+      color: var(--text);
+
+      border-radius: 14px;
+
+      padding: 13px 14px;
+
+      outline: none;
+
+      transition: .2s;
+    }
+
+    .field textarea {
+      min-height: 90px;
+
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--blue);
+
+      box-shadow:
+        0 0 0 3px
+        rgba(47, 128, 237, .10);
+    }
+
+
+    /* =====================================================
+       BUTTON
+    ===================================================== */
+
+    .btn {
+      width: 100%;
+
+      padding: 13px 16px;
+
+      border: 0;
+
+      border-radius: 14px;
+
+      font-weight: 900;
+
+      transition: .2s;
+    }
+
+    .btn-primary {
+      background:
+        linear-gradient(
+          135deg,
+          var(--blue),
+          var(--blue-dark)
+        );
+
+      color: #ffffff;
+
+      box-shadow:
+        0 8px 18px
+        rgba(47, 128, 237, .20);
+    }
+
+    .btn-secondary {
+      background: var(--blue-light);
+
+      color: var(--blue-dark);
+    }
+
+    .btn-danger {
+      background: var(--danger-light);
+
+      color: #b83b49;
+    }
+
+    .btn-warning {
+      background: var(--warning-light);
+
+      color: #9a6912;
+    }
+
+
+    /* =====================================================
+       LOGIN ERROR
+    ===================================================== */
+
+    .login-error {
+      min-height: 20px;
+
+      margin-top: 10px;
+
+      text-align: center;
+
+      color: var(--danger);
+
+      font-size: 12px;
+    }
+
+
+    /* =====================================================
+       APP
+    ===================================================== */
+
+    #appScreen {
+      min-height: 100vh;
+
+      padding-bottom:
+        calc(88px + var(--safe-bottom));
+    }
+
+
+    /* =====================================================
+       TOP BAR
+    ===================================================== */
+
+    .topbar {
+      position: sticky;
+
+      top: 0;
+
+      z-index: 20;
+
+      padding:
+        calc(12px + var(--safe-top))
+        16px
+        12px;
+
+      background:
+        rgba(238, 247, 255, .95);
+
+      backdrop-filter: blur(14px);
+
+      border-bottom:
+        1px solid var(--border);
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+    }
+
+    .brand {
+      font-size: 18px;
+
+      font-weight: 900;
+    }
+
+    .brand small {
+      display: block;
+
+      margin-top: 3px;
+
+      font-size: 10px;
+
+      color: var(--text-soft);
+
+      font-weight: 700;
+    }
+
+    .top-action {
+      width: 40px;
+      height: 40px;
+
+      border-radius: 13px;
+
+      border:
+        1px solid var(--border);
+
+      background: #ffffff;
+
+      color: var(--blue);
+
+      font-size: 19px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+
+    /* =====================================================
+       PAGE
+    ===================================================== */
+
+    .page {
+      padding: 17px;
+    }
+
+    .page-title {
+      margin: 0;
+
+      font-size: 23px;
+
+      font-weight: 900;
+    }
+
+    .page-subtitle {
+      margin:
+        4px
+        0
+        17px;
+
+      font-size: 12px;
+
+      line-height: 1.5;
+
+      color: var(--text-soft);
+    }
+
+
+    /* =====================================================
+       DASHBOARD GRID
+    ===================================================== */
+
+    .stats-grid {
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 10px;
+
+      margin-bottom: 12px;
+    }
+
+    .stat-card {
+      background: var(--card);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 18px;
+
+      padding: 15px;
+
+      box-shadow:
+        0 5px 15px
+        rgba(44,104,160,.05);
+    }
+
+    .stat-number {
+      display: block;
+
+      font-size: 25px;
+
+      font-weight: 900;
+
+      line-height: 1.1;
+
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+
+      color: var(--text-soft);
+
+      font-weight: 700;
+    }
+
+
+    /* =====================================================
+       CARD
+    ===================================================== */
+
+    .card {
+      background: var(--card);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 20px;
+
+      padding: 16px;
+
+      margin-bottom: 12px;
+
+      box-shadow:
+        0 6px 18px
+        rgba(44,104,160,.06);
+    }
+
+    .card-title {
+      margin-bottom: 12px;
+
+      font-size: 14px;
+
+      font-weight: 900;
+    }
+
+
+    /* =====================================================
+       QUICK ACTION
+    ===================================================== */
+
+    .quick-actions {
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 9px;
+    }
+
+
+    /* =====================================================
+       BADGES
+    ===================================================== */
+
+    .badge-row {
+      display: flex;
+
+      flex-wrap: wrap;
+
+      gap: 7px;
+    }
+
+    .badge {
+      display: inline-flex;
+
+      align-items: center;
+
+      padding:
+        7px
+        10px;
+
+      border-radius: 999px;
+
+      background:
+        var(--blue-light);
+
+      color:
+        var(--blue-dark);
+
+      font-size: 11px;
+
+      font-weight: 900;
+    }
+
+
+    /* =====================================================
+       SCANNER
+    ===================================================== */
+
+    .scanner-card {
+      background: #ffffff;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 22px;
+
+      padding: 12px;
+
+      box-shadow:
+        var(--shadow);
+
+      overflow: hidden;
+    }
+
+    #reader {
+      width: 100%;
+
+      min-height: 270px;
+
+      background:
+        #dcefff;
+
+      border-radius: 17px;
+
+      overflow: hidden;
+    }
+
+    #reader video {
+      width: 100% !important;
+
+      border-radius: 17px;
+    }
+
+    #reader img {
+      max-width: 100%;
+    }
+
+    .scanner-buttons {
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 8px;
+
+      margin-top: 10px;
+    }
+
+    .scan-result {
+      margin-top: 11px;
+
+      padding: 13px;
+
+      border-radius: 15px;
+
+      background:
+        var(--blue-light);
+
+      color:
+        var(--blue-dark);
+
+      font-size: 12px;
+
+      line-height: 1.55;
+
+      min-height: 48px;
+    }
+
+    .camera-note {
+      font-size: 11px;
+
+      line-height: 1.6;
+
+      color: var(--text-soft);
+    }
+
+
+    /* =====================================================
+       ZXING SCANNER OVERLAY
+    ===================================================== */
+
+    .scanner-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: flex-end; justify-content: center; background: rgba(10,35,60,.58); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+    .scanner-modal { width: min(100%,430px); max-height: 94vh; overflow:auto; background:#fff; border-radius:26px 26px 0 0; padding:16px 14px calc(16px + var(--safe-bottom)); box-shadow:0 -16px 50px rgba(20,75,120,.22); }
+    .scanner-modal-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .scanner-modal-title { margin:0; font-size:18px; font-weight:900; }
+    .scanner-close { width:40px; height:40px; border:0; border-radius:14px; background:var(--blue-light); color:var(--blue-dark); font-size:22px; font-weight:900; }
+    .zxing-camera-wrap { position:relative; width:100%; min-height:300px; background:#071a2b; border-radius:20px; overflow:hidden; }
+    #zxingVideo { display:block; width:100%; height:min(58vh,430px); min-height:300px; object-fit:cover; background:#071a2b; }
+    .scan-frame { position:absolute; width:58%; max-width:270px; aspect-ratio:1; left:50%; top:50%; transform:translate(-50%,-50%); border:3px solid #fff; border-radius:20px; box-shadow:0 0 0 999px rgba(0,0,0,.18); pointer-events:none; }
+    .scanner-status { margin-top:10px; padding:12px 13px; border-radius:15px; background:var(--blue-light); color:var(--blue-dark); font-size:12px; line-height:1.5; min-height:46px; }
+    .scanner-modal-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    @media (min-width:600px) { .scanner-overlay { align-items:center; padding:20px; } .scanner-modal { border-radius:26px; max-height:92vh; } }
+
+
+    /* =====================================================
+       LIST
+    ===================================================== */
+
+    .search-box {
+      margin-bottom: 12px;
+    }
+
+    .list-item {
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 10px;
+
+      padding: 12px 0;
+
+      border-bottom:
+        1px solid var(--border);
+    }
+
+    .list-item:last-child {
+      border-bottom: 0;
+    }
+
+    .item-main {
+      min-width: 0;
+
+      flex: 1;
+    }
+
+    .item-main strong {
+      display: block;
+
+      font-size: 13px;
+
+      font-weight: 900;
+
+      white-space: nowrap;
+
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+    }
+
+    .item-main span {
+      display: block;
+
+      margin-top: 3px;
+
+      font-size: 11px;
+
+      color: var(--text-soft);
+
+      line-height: 1.4;
+    }
+
+    .item-actions {
+      display: flex;
+
+      gap: 5px;
+
+      flex-shrink: 0;
+    }
+
+    .mini-btn {
+      padding:
+        7px
+        9px;
+
+      border: 0;
+
+      border-radius: 10px;
+
+      background:
+        var(--blue-light);
+
+      color:
+        var(--blue-dark);
+
+      font-size: 10px;
+
+      font-weight: 900;
+    }
+
+    .mini-btn.delete {
+      background:
+        var(--danger-light);
+
+      color:
+        #b83b49;
+    }
+
+
+    /* =====================================================
+       EMPTY
+    ===================================================== */
+
+    .empty {
+      text-align: center;
+
+      padding: 25px 10px;
+
+      color: var(--text-soft);
+
+      font-size: 12px;
+    }
+
+
+    /* =====================================================
+       TABLE NOTE
+    ===================================================== */
+
+    .small-note {
+      font-size: 11px;
+
+      color: var(--text-soft);
+
+      line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       BOTTOM NAVIGATION
+    ===================================================== */
+
+    .bottom-nav {
+      position: fixed;
+
+      left: 50%;
+
+      bottom: 0;
+
+      transform: translateX(-50%);
+
+      z-index: 30;
+
+      width: 100%;
+
+      max-width: 430px;
+
+      padding:
+        8px
+        8px
+        calc(8px + var(--safe-bottom));
+
+      background:
+        rgba(255,255,255,.97);
+
+      backdrop-filter:
+        blur(15px);
+
+      border-top:
+        1px solid var(--border);
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(5,1fr);
+
+      gap: 3px;
+    }
+
+    .nav-btn {
+      border: 0;
+
+      background: transparent;
+
+      color:
+        var(--text-soft);
+
+      border-radius: 12px;
+
+      padding:
+        7px 2px;
+
+      font-size: 9px;
+
+      font-weight: 900;
+    }
+
+    .nav-icon {
+      display: block;
+
+      font-size: 18px;
+
+      line-height: 20px;
+
+      margin-bottom: 2px;
+    }
+
+    .nav-btn.active {
+      background:
+        var(--blue-light);
+
+      color:
+        var(--blue-dark);
+    }
+
+
+    /* =====================================================
+       MODAL
+    ===================================================== */
+
+    .modal {
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 60;
+
+      background:
+        rgba(23,50,77,.42);
+
+      display: flex;
+
+      align-items: flex-end;
+
+      justify-content: center;
+    }
+
+    .modal-box {
+      width: 100%;
+
+      max-width: 430px;
+
+      max-height: 91vh;
+
+      overflow-y: auto;
+
+      background: #ffffff;
+
+      border-radius:
+        25px
+        25px
+        0
+        0;
+
+      padding:
+        20px
+        18px
+        calc(20px + var(--safe-bottom));
+    }
+
+    .modal-header {
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      margin-bottom: 15px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+
+      font-weight: 900;
+    }
+
+    .close-btn {
+      width: 35px;
+      height: 35px;
+
+      border: 0;
+
+      border-radius: 11px;
+
+      background:
+        var(--blue-light);
+
+      color:
+        var(--blue-dark);
+
+      font-size: 20px;
+    }
+
+
+    /* =====================================================
+       TOAST
+    ===================================================== */
+
+    .toast {
+      position: fixed;
+
+      left: 50%;
+
+      bottom:
+        calc(96px + var(--safe-bottom));
+
+      transform:
+        translateX(-50%);
+
+      z-index: 90;
+
+      width:
+        calc(100% - 32px);
+
+      max-width: 398px;
+
+      padding:
+        12px
+        14px;
+
+      border-radius: 14px;
+
+      background:
+        #17324d;
+
+      color:
+        #ffffff;
+
+      font-size: 12px;
+
+      font-weight: 700;
+
+      text-align: center;
+
+      box-shadow:
+        0 10px 28px
+        rgba(0,0,0,.20);
+    }
+
+
+    /* =====================================================
+       LOADING
+    ===================================================== */
+
+    .loading {
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 100;
+
+      background:
+        rgba(238,247,255,.94);
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+    }
+
+    .loading-box {
+      text-align: center;
+
+      color: var(--text);
+    }
+
+    .spinner {
+      width: 38px;
+      height: 38px;
+
+      border:
+        4px solid
+        #cfe6f8;
+
+      border-top-color:
+        var(--blue);
+
+      border-radius: 50%;
+
+      animation:
+        spin .8s linear infinite;
+
+      margin:
+        0 auto
+        11px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+
+    /* =====================================================
+       DESKTOP
+    ===================================================== */
+
+    @media (min-width: 700px) {
+
+      body {
+        padding: 20px;
+      }
+
+      .app-shell {
+        min-height:
+          calc(100vh - 40px);
+
+        border-radius: 30px;
+
+        box-shadow:
+          0 20px 60px
+          rgba(40,90,140,.18);
+
+        overflow: hidden;
+      }
+
+      .bottom-nav {
+        bottom: 20px;
+
+        border-radius:
+          0 0 28px 28px;
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="app-shell">
+
+
+  <!-- ===================================================
+       LOGIN
+  ==================================================== -->
+
+  <section id="loginScreen">
+
+    <div class="login-card">
+
+      <div class="login-logo">
+        QR
+      </div>
+
+      <h1 class="login-title">
+        Absensi QR
+      </h1>
+
+      <div class="login-subtitle">
+        Sistem absensi siswa berbasis QR Code
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          USERNAME
+        </label>
+
+        <input
+          id="loginUser"
+          type="text"
+          autocomplete="username"
+          placeholder="Masukkan username"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          PASSWORD
+        </label>
+
+        <input
+          id="loginPass"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Masukkan password"
+        >
+
+      </div>
+
+
+      <button
+        class="btn btn-primary"
+        onclick="login()"
+      >
+        MASUK
+      </button>
+
+
+      <div
+        id="loginError"
+        class="login-error"
+      ></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ===================================================
+       APPLICATION
+  ==================================================== -->
+
+  <section
+    id="appScreen"
+    class="hidden"
+  >
+
+
+    <!-- TOP BAR -->
+
+    <header class="topbar">
+
+      <div class="brand">
+
+        Absensi QR
+
+        <small id="welcomeUser">
+          SALMA • ADMIN
+        </small>
+
+      </div>
+
+
+      <button
+        class="top-action"
+        onclick="go('dashboard')"
+        title="Dashboard"
+      >
+        ⌂
+      </button>
+
+    </header>
+
+
+    <!-- CONTENT -->
+
+    <main id="content"></main>
+
+
+    <!-- =================================================
+         BOTTOM NAVIGATION
+    ================================================== -->
+
+    <nav class="bottom-nav">
+
+      <button
+        class="nav-btn active"
+        data-page="dashboard"
+        onclick="go('dashboard')"
+      >
+        <span class="nav-icon">
+          ⌂
+        </span>
+        Beranda
+      </button>
+
+
+      <button
+        class="nav-btn"
+        data-page="scan"
+        onclick="go('scan')"
+      >
+        <span class="nav-icon">
+          ▣
+        </span>
+        Scan QR
+      </button>
+
+
+      <button
+        class="nav-btn"
+        data-page="manual"
+        onclick="go('manual')"
+      >
+        <span class="nav-icon">
+          ✎
+        </span>
+        Manual
+      </button>
+
+
+      <button
+        class="nav-btn"
+        data-page="history"
+        onclick="go('history')"
+      >
+        <span class="nav-icon">
+          ◷
+        </span>
+        Riwayat
+      </button>
+
+
+      <button
+        class="nav-btn"
+        data-page="data"
+        onclick="go('data')"
+      >
+        <span class="nav-icon">
+          ☷
+        </span>
+        Data
+      </button>
+
+    </nav>
+
+  </section>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL
+====================================================== -->
+
+<div
+  id="modal"
+  class="modal hidden"
+></div>
+
+
+<!-- =====================================================
+     TOAST
+====================================================== -->
+
+<div
+  id="toast"
+  class="toast hidden"
+></div>
+
+
+<!-- =====================================================
+     LOADING
+====================================================== -->
+
+<div
+  id="loading"
+  class="loading hidden"
+>
+
+  <div class="loading-box">
+
+    <div class="spinner"></div>
+
+    <b>
+      Memuat...
+    </b>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =======================================================
+   GLOBAL DATA
+======================================================= */
+
+let DATA = {
+
+  students: [],
+
+  teachers: [],
+
+  attendance: [],
+
+  classes: [],
+
+  dashboard: {}
+
+};
+
+
+let currentPage =
+  'dashboard';
+
+
+let scanner = null;
+
+let scanning = false;
+
+let scannerBusy = false;
+
+
+/* =======================================================
+   SHORTCUT
+======================================================= */
+
+function $(id) {
+
+  return document.getElementById(id);
+
+}
+
+
+/* =======================================================
+   HTML ESCAPE
+======================================================= */
+
+function esc(value) {
+
+  return String(
+    value ?? ''
+  )
+  .replace(
+    /[&<>"']/g,
+    function(match) {
+
+      return {
+
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+
+      }[match];
+
+    }
+  );
+
+}
+
+
+/* =======================================================
+   LOADING
+======================================================= */
+
+function showLoading(show) {
+
+  $('loading')
+    .classList
+    .toggle(
+      'hidden',
+      !show
+    );
+
+}
+
+
+/* =======================================================
+   TOAST
+======================================================= */
+
+function toast(message) {
+
+  const element =
+    $('toast');
+
+  element.textContent =
+    message;
+
+  element.classList
+    .remove('hidden');
+
+  clearTimeout(
+    window.toastTimer
+  );
+
+  window.toastTimer =
+    setTimeout(
+      function() {
+
+        element.classList
+          .add('hidden');
+
+      },
+      2800
+    );
+
+}
+
+
+/* =======================================================
+   SERVER CALL
+======================================================= */
+
+function server(functionName, ...args) {
+
+  return new Promise(
+    function(resolve, reject) {
+
+      google.script.run
+
+        .withSuccessHandler(
+          resolve
+        )
+
+        .withFailureHandler(
+          reject
+        )
+
+        [functionName](...args);
+
+    }
+  );
+
+}
+
+
+/* =======================================================
+   LOGIN
+======================================================= */
+
+async function login() {
+
+  const username =
+    $('loginUser')
+      .value
+      .trim();
+
+  const password =
+    $('loginPass')
+      .value;
+
+  $('loginError')
+    .textContent = '';
+
+
+  if (!username || !password) {
+
+    $('loginError')
+      .textContent =
+      'Username dan password wajib diisi.';
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+
+  try {
+
+    const result =
+      await server(
+        'checkLogin',
+        username,
+        password
+      );
+
+
+    if (!result || result.ok !== true) {
+
+      $('loginError')
+        .textContent =
+        (result && result.message) ||
+        'Username atau password salah.';
+
+      return;
+
+    }
+
+
+    const session = {
+      ok: true,
+      success: true,
+      token: result.token,
+      username: result.username || username,
+      role: result.role || 'ADMIN',
+      user: result.user || null
+    };
+
+
+    sessionStorage.setItem(
+      'absensi_login',
+      JSON.stringify(session)
+    );
+
+
+    $('loginScreen')
+      .classList
+      .add('hidden');
+
+
+    $('appScreen')
+      .classList
+      .remove('hidden');
+
+
+    $('welcomeUser')
+      .textContent =
+      (
+        result.username ||
+        'SALMA'
+      ) +
+      ' • ' +
+      (
+        result.role ||
+        'ADMIN'
+      );
+
+
+    await refreshData();
+
+    go('dashboard');
+
+
+  } catch (error) {
+
+    $('loginError')
+      .textContent =
+      error.message ||
+      String(error);
+
+  } finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   REFRESH DATA
+======================================================= */
+
+function sessionToken() {
+  try {
+    const data = JSON.parse(
+      sessionStorage.getItem('absensi_login') || '{}'
+    );
+    return data.token || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+async function refreshData() {
+
+  const result =
+    await server(
+      'getAppData',
+      sessionToken()
+    );
+
+  if (result) {
+
+    DATA =
+      result;
+
+  }
+
+}
+
+
+/* =======================================================
+   NAVIGATION
+======================================================= */
+
+function go(page) {
+
+  currentPage =
+    page;
+
+
+  document
+    .querySelectorAll(
+      '.nav-btn'
+    )
+    .forEach(
+      function(button) {
+
+        button.classList
+          .toggle(
+            'active',
+            button.dataset.page === page
+          );
+
+      }
+    );
+
+
+  if (page !== 'scan') {
+
+    closeScanner();
+
+  }
+
+
+  renderPage();
+
+}
+
+
+/* =======================================================
+   RENDER
+======================================================= */
+
+function renderPage() {
+
+  const content =
+    $('content');
+
+
+  if (
+    currentPage ===
+    'dashboard'
+  ) {
+
+    content.innerHTML =
+      dashboardHTML();
+
+  }
+
+
+  else if (
+    currentPage ===
+    'scan'
+  ) {
+
+    content.innerHTML =
+      scanHTML();
+
+    setTimeout(
+      openScanner,
+      180
+    );
+
+  }
+
+
+  else if (
+    currentPage ===
+    'manual'
+  ) {
+
+    content.innerHTML =
+      manualHTML();
+
+    setTimeout(
+      renderManualList,
+      50
+    );
+
+  }
+
+
+  else if (
+    currentPage ===
+    'history'
+  ) {
+
+    content.innerHTML =
+      historyHTML();
+
+  }
+
+
+  else if (
+    currentPage ===
+    'data'
+  ) {
+
+    content.innerHTML =
+      dataHTML();
+
+  }
+
+}
+
+
+/* =======================================================
+   DASHBOARD
+======================================================= */
+
+function dashboardHTML() {
+
+  const dashboard =
+    DATA.dashboard || {};
+
+  const counts =
+    dashboard.counts || {};
+
+
+  return `
+
+    <div class="page">
+
+      <h1 class="page-title">
+        Dashboard
+      </h1>
+
+      <div class="page-subtitle">
+        ${esc(
+          dashboard.date || ''
+        )}
+        • Ringkasan absensi hari ini
+      </div>
+
+
+      <div class="stats-grid">
+
+        <div class="stat-card">
+
+          <span class="stat-number">
+            ${dashboard.totalStudents || 0}
+          </span>
+
+          <span class="stat-label">
+            Total Siswa
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-number">
+            ${dashboard.totalToday || 0}
+          </span>
+
+          <span class="stat-label">
+            Sudah Dicatat
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-number">
+            ${counts.HADIR || 0}
+          </span>
+
+          <span class="stat-label">
+            Hadir
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-number">
+            ${counts.IZIN || 0}
+          </span>
+
+          <span class="stat-label">
+            Izin
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-number">
+            ${counts.SAKIT || 0}
+          </span>
+
+          <span class="stat-label">
+            Sakit
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-number">
+            ${counts.ALFA || 0}
+          </span>
+
+          <span class="stat-label">
+            Alfa
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-title">
+          Aksi Cepat
+        </div>
+
+        <div class="quick-actions">
+
+          <button
+            class="btn btn-primary"
+            onclick="go('scan')"
+          >
+            Scan QR
+          </button>
+
+          <button
+            class="btn btn-secondary"
+            onclick="go('manual')"
+          >
+            Manual
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-title">
+          Status Hari Ini
+        </div>
+
+        <div class="badge-row">
+
+          <span class="badge">
+            HADIR
+            ${counts.HADIR || 0}
+          </span>
+
+          <span class="badge">
+            IZIN
+            ${counts.IZIN || 0}
+          </span>
+
+          <span class="badge">
+            SAKIT
+            ${counts.SAKIT || 0}
+          </span>
+
+          <span class="badge">
+            ALFA
+            ${counts.ALFA || 0}
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-title">
+          Informasi
+        </div>
+
+        <div class="small-note">
+
+          Login aktif sebagai
+          <b>
+            ${esc(sessionUser())}
+          </b>.
+
+          Gunakan menu
+          <b>Scan QR</b>
+          untuk melakukan absensi
+          menggunakan kamera.
+
+        </div>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =======================================================
+   SCAN PAGE
+======================================================= */
+
+function scanHTML() {
+  return `
+    <div class="page">
+      <h1 class="page-title">Scan QR / Barcode</h1>
+      <div class="page-subtitle">Gunakan kamera perangkat secara langsung untuk membaca QR Code siswa.</div>
+      <div class="card">
+        <div class="card-title">Scanner ZXing</div>
+        <div class="small-note">Kamera belakang diprioritaskan. Jika kamera live tidak didukung browser, gunakan tombol <b>KAMERA HP</b>.</div>
+        <div class="scanner-buttons" style="margin-top:12px;">
+          <button class="btn btn-primary" onclick="openScanner()">BUKA SCANNER</button>
+          <button class="btn btn-secondary" onclick="openNativeCamera()">KAMERA HP</button>
+          <button class="btn btn-secondary" onclick="stopScanner()">STOP</button>
+        </div>
+        <div id="scanResult" class="scan-result">Scanner belum dibuka.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Status Absensi</div>
+        <div class="field"><label>STATUS</label><select id="scanStatus">
+          <option value="HADIR">HADIR</option><option value="IZIN">IZIN</option><option value="SAKIT">SAKIT</option><option value="ALFA">ALFA</option>
+        </select></div>
+        <div class="field"><label>KETERANGAN</label><input id="scanNote" type="text" placeholder="Keterangan opsional"></div>
+      </div>
+      <div class="card"><div class="camera-note"><b>Catatan:</b> kamera membutuhkan HTTPS dan izin kamera dari browser.</div></div>
+    </div>`;
+}
+
+
+/* =======================================================
+   CAMERA QR SCANNER
+   Live camera is attempted first.
+   Native camera capture is the fallback for Apps Script browsers
+   where getUserMedia/ZXing is blocked.
+======================================================= */
+
+let zxingReader = null;
+let zxingControls = null;
+let scannerOpening = false;
+let liveCameraStream = null;
+let nativeCameraInput = null;
+let nativeScanBusy = false;
+
+function getScannerErrorMessage(error) {
+  const name = String(error?.name || '');
+  const message = String(error?.message || error || '');
+
+  if (
+    name === 'NotAllowedError' ||
+    name === 'PermissionDeniedError' ||
+    /permission|denied|not allowed/i.test(message)
+  ) {
+    return 'Izin kamera ditolak. Izinkan kamera untuk situs ini lalu tekan AKTIFKAN ULANG.';
+  }
+
+  if (
+    name === 'NotFoundError' ||
+    name === 'DevicesNotFoundError'
+  ) {
+    return 'Kamera tidak ditemukan pada perangkat ini.';
+  }
+
+  if (name === 'NotReadableError') {
+    return 'Kamera sedang digunakan aplikasi lain. Tutup aplikasi yang memakai kamera lalu coba lagi.';
+  }
+
+  if (
+    name === 'SecurityError' ||
+    /secure context|https|insecure/i.test(message)
+  ) {
+    return 'Kamera membutuhkan HTTPS. Gunakan URL Web App /exec Google Apps Script.';
+  }
+
+  return 'Kamera live tidak dapat dibuka. Gunakan tombol kamera HP sebagai cadangan.';
+}
+
+function setScanMessage(message) {
+  const element = $('scanResult');
+  if (element) element.textContent = message;
+
+  const modalStatus = $('zxingStatus');
+  if (modalStatus) modalStatus.textContent = message;
+}
+
+function createScannerModal() {
+  let overlay = $('scannerOverlay');
+  if (overlay) return overlay;
+
+  overlay = document.createElement('div');
+  overlay.id = 'scannerOverlay';
+  overlay.className = 'scanner-overlay';
+
+  overlay.innerHTML = `
+    <div class="scanner-modal" role="dialog" aria-modal="true"
+         aria-label="Scanner QR dan Barcode">
+
+      <div class="scanner-modal-head">
+        <h2 class="scanner-modal-title">Scan QR / Barcode</h2>
+        <button class="scanner-close" type="button"
+                onclick="closeScanner()">×</button>
+      </div>
+
+      <div class="zxing-camera-wrap">
+        <video id="zxingVideo"
+               playsinline
+               muted
+               autoplay></video>
+        <div class="scan-frame"></div>
+      </div>
+
+      <div id="zxingStatus" class="scanner-status">
+        Menyiapkan kamera...
+      </div>
+
+      <div class="scanner-modal-actions">
+        <button class="btn btn-primary"
+                type="button"
+                onclick="openScanner()">
+          AKTIFKAN ULANG
+        </button>
+
+        <button class="btn btn-secondary"
+                type="button"
+                onclick="openNativeCamera()">
+          KAMERA HP
+        </button>
+
+        <button class="btn btn-secondary"
+                type="button"
+                onclick="closeScanner()">
+          TUTUP
+        </button>
+      </div>
+
+      <input id="nativeCameraInput"
+             type="file"
+             accept="image/*"
+             capture="environment"
+             style="display:none">
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  nativeCameraInput = $('nativeCameraInput');
+
+  if (nativeCameraInput) {
+    nativeCameraInput.addEventListener('change', function() {
+      handleNativeCameraImage(this);
+    });
+  }
+
+  overlay.addEventListener('click', function(event) {
+    if (event.target === overlay) closeScanner();
+  });
+
+  return overlay;
+}
+
+async function waitForZXing(timeoutMs = 8000) {
+  const started = Date.now();
+
+  while (
+    !window.ZXingBrowser &&
+    Date.now() - started < timeoutMs
+  ) {
+    await new Promise(function(resolve) {
+      setTimeout(resolve, 100);
+    });
+  }
+
+  return !!window.ZXingBrowser;
+}
+
+async function openScanner() {
+  if (scannerOpening) return;
+
+  scannerOpening = true;
+
+  const overlay = createScannerModal();
+
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  setScanMessage('Meminta izin kamera...');
+
+  try {
+    await stopScanner();
+
+    const video = $('zxingVideo');
+
+    if (!video) {
+      throw new Error('Video kamera tidak tersedia.');
+    }
+
+    /*
+     * LANGKAH 1
+     * Minta izin kamera secara langsung.
+     * Ini membuat browser menampilkan permission prompt
+     * ketika permission belum pernah diberikan.
+     */
+    if (
+      !navigator.mediaDevices ||
+      typeof navigator.mediaDevices.getUserMedia !== 'function'
+    ) {
+      throw new Error('getUserMedia tidak tersedia.');
+    }
+
+    liveCameraStream =
+      await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+    video.srcObject = liveCameraStream;
+
+    await video.play();
+
+    setScanMessage('✓ Kamera aktif. Mencari QR...');
+
+    /*
+     * LANGKAH 2
+     * BarcodeDetector native jika browser mendukung.
+     * Tidak membutuhkan library eksternal.
+     */
+    if ('BarcodeDetector' in window) {
+      let formats = [
+        'qr_code',
+        'code_128',
+        'code_39',
+        'ean_13',
+        'ean_8',
+        'upc_a',
+        'upc_e',
+        'codabar',
+        'data_matrix',
+        'pdf417',
+        'aztec'
+      ];
+
+      try {
+        const supported =
+          await BarcodeDetector.getSupportedFormats();
+
+        formats =
+          formats.filter(function(format) {
+            return supported.includes(format);
+          });
+
+        if (!formats.includes('qr_code')) {
+          formats.unshift('qr_code');
+        }
+      } catch (error) {}
+
+      let detector;
+
+      try {
+        detector =
+          new BarcodeDetector({
+            formats: formats
+          });
+      } catch (error) {
+        detector =
+          new BarcodeDetector({
+            formats: ['qr_code']
+          });
+      }
+
+      await runNativeDetectorLoop(
+        detector,
+        video
+      );
+
+      return;
+    }
+
+    /*
+     * LANGKAH 3
+     * Jika BarcodeDetector tidak ada,
+     * gunakan ZXing sebagai fallback.
+     */
+    if (!(await waitForZXing())) {
+      throw new Error('ZXing tidak tersedia.');
+    }
+
+    zxingReader =
+      new ZXingBrowser.BrowserMultiFormatReader();
+
+    if (ZXingBrowser.BarcodeFormat) {
+      zxingReader.possibleFormats = [
+        ZXingBrowser.BarcodeFormat.QR_CODE,
+        ZXingBrowser.BarcodeFormat.CODE_128,
+        ZXingBrowser.BarcodeFormat.CODE_39,
+        ZXingBrowser.BarcodeFormat.EAN_13,
+        ZXingBrowser.BarcodeFormat.EAN_8,
+        ZXingBrowser.BarcodeFormat.UPC_A,
+        ZXingBrowser.BarcodeFormat.UPC_E,
+        ZXingBrowser.BarcodeFormat.CODE_93,
+        ZXingBrowser.BarcodeFormat.ITF,
+        ZXingBrowser.BarcodeFormat.CODABAR,
+        ZXingBrowser.BarcodeFormat.DATA_MATRIX,
+        ZXingBrowser.BarcodeFormat.PDF_417,
+        ZXingBrowser.BarcodeFormat.AZTEC
+      ];
+    }
+
+    zxingControls =
+      await zxingReader.decodeFromVideoDevice(
+        undefined,
+        video,
+        async function(result, error, controls) {
+
+          if (!result || scannerBusy) return;
+
+          scannerBusy = true;
+
+          try {
+            const decodedText =
+              result.getText();
+
+            setScanMessage(
+              '✓ QR terbaca. Memproses absensi...'
+            );
+
+            if (
+              controls &&
+              typeof controls.stop === 'function'
+            ) {
+              controls.stop();
+            }
+
+            await processDecodedCode(
+              decodedText,
+              result.getBarcodeFormat?.()
+            );
+
+          } finally {
+            setTimeout(function() {
+              scannerBusy = false;
+            }, 1200);
+          }
+        }
+      );
+
+  } catch (error) {
+
+    console.error('openScanner:', error);
+
+    await stopScanner();
+
+    setScanMessage(
+      getScannerErrorMessage(error)
+    );
+
+    /*
+     * Jangan membuat aplikasi macet.
+     * Tampilkan kamera HP native sebagai fallback.
+     */
+    setTimeout(function() {
+      if ($('scannerOverlay')) {
+        setScanMessage(
+          getScannerErrorMessage(error) +
+          ' Tekan KAMERA HP untuk membuka kamera bawaan perangkat.'
+        );
+      }
+    }, 50);
+
+  } finally {
+    scannerOpening = false;
+  }
+}
+
+async function runNativeDetectorLoop(
+  detector,
+  video
+) {
+  if (!video || video.readyState < 2) {
+    setTimeout(function() {
+      if ($('scannerOverlay')) {
+        runNativeDetectorLoop(detector, video);
+      }
+    }, 150);
+    return;
+  }
+
+  if (scannerBusy) return;
+
+  try {
+    const codes =
+      await detector.detect(video);
+
+    if (codes && codes.length) {
+      const value =
+        codes[0].rawValue || '';
+
+      if (value && !scannerBusy) {
+        scannerBusy = true;
+
+        setScanMessage(
+          '✓ QR terbaca. Memproses absensi...'
+        );
+
+        await processDecodedCode(
+          value,
+          codes[0].format || ''
+        );
+
+        return;
+      }
+    }
+  } catch (error) {
+    /*
+     * Kamera tetap berjalan.
+     * Error satu frame tidak mematikan scanner.
+     */
+  }
+
+  if (
+    $('scannerOverlay') &&
+    !$('scannerOverlay').classList.contains('hidden') &&
+    currentPage === 'scan'
+  ) {
+    setTimeout(function() {
+      runNativeDetectorLoop(detector, video);
+    }, 180);
+  }
+}
+
+async function processDecodedCode(
+  decodedText,
+  format
+) {
+  try {
+
+    const status =
+      $('scanStatus')?.value ||
+      'HADIR';
+
+    const note =
+      $('scanNote')?.value ||
+      '';
+
+    const result =
+      await server(
+        'processScan',
+        sessionToken(),
+        decodedText,
+        status,
+        note
+      );
+
+    if (result.ok) {
+
+      const studentName =
+        result.student?.name || '';
+
+      setScanMessage(
+        '✓ ' +
+        result.message +
+        (
+          studentName
+            ? ' • ' + studentName
+            : ''
+        )
+      );
+
+      toast(result.message);
+
+      await refreshData();
+
+    } else {
+
+      setScanMessage(
+        '✕ ' +
+        (
+          result.message ||
+          'Scan ditolak.'
+        )
+      );
+
+      toast(
+        result.message ||
+        'Scan ditolak.'
+      );
+    }
+
+  } catch (error) {
+
+    setScanMessage(
+      'Error saat memproses scan: ' +
+      (
+        error.message ||
+        String(error)
+      )
+    );
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  } finally {
+
+    setTimeout(function() {
+      scannerBusy = false;
+    }, 1200);
+
+    /*
+     * Setelah berhasil membaca satu QR,
+     * buka kembali scanner agar siswa berikutnya
+     * bisa langsung discan.
+     */
+    setTimeout(function() {
+      if (
+        $('scannerOverlay') &&
+        currentPage === 'scan'
+      ) {
+        openScanner();
+      }
+    }, 1400);
+  }
+}
+
+async function openNativeCamera() {
+  const input =
+    $('nativeCameraInput');
+
+  if (!input) {
+    setScanMessage(
+      'Kontrol kamera HP tidak tersedia.'
+    );
+    return;
+  }
+
+  input.value = '';
+  input.click();
+}
+
+async function handleNativeCameraImage(input) {
+
+  const file =
+    input &&
+    input.files &&
+    input.files[0];
+
+  if (!file || nativeScanBusy) {
+    return;
+  }
+
+  nativeScanBusy = true;
+
+  showLoading(true);
+
+  setScanMessage(
+    'Foto diterima. Membaca QR...'
+  );
+
+  try {
+
+    /*
+     * Gunakan ZXing untuk membaca foto kamera.
+     * Fallback kedua memakai BarcodeDetector jika tersedia.
+     */
+    let decodedText = '';
+
+    if (await waitForZXing(5000)) {
+
+      const reader =
+        new ZXingBrowser.BrowserMultiFormatReader();
+
+      const result =
+        await reader.decodeFromImageUrl(
+          URL.createObjectURL(file)
+        );
+
+      if (result) {
+        decodedText =
+          result.getText();
+      }
+    }
+
+    if (!decodedText) {
+      throw new Error(
+        'QR tidak terbaca. Dekatkan QR dan pastikan seluruh QR terlihat.'
+      );
+    }
+
+    await processDecodedCode(
+      decodedText,
+      'native-camera'
+    );
+
+  } catch (error) {
+
+    setScanMessage(
+      error.message ||
+      'QR tidak terbaca.'
+    );
+
+    toast(
+      error.message ||
+      'QR tidak terbaca.'
+    );
+
+  } finally {
+
+    hideLoading();
+    nativeScanBusy = false;
+    input.value = '';
+
+  }
+}
+
+async function stopScanner() {
+
+  try {
+    if (
+      zxingControls &&
+      typeof zxingControls.stop === 'function'
+    ) {
+      zxingControls.stop();
+    }
+  } catch (error) {}
+
+  zxingControls = null;
+
+  try {
+    if (
+      zxingReader &&
+      typeof zxingReader.reset === 'function'
+    ) {
+      zxingReader.reset();
+    }
+  } catch (error) {}
+
+  zxingReader = null;
+
+  if (liveCameraStream) {
+    try {
+      liveCameraStream
+        .getTracks()
+        .forEach(function(track) {
+          track.stop();
+        });
+    } catch (error) {}
+
+    liveCameraStream = null;
+  }
+
+  const video =
+    $('zxingVideo');
+
+  if (video) {
+    try {
+      video.pause();
+    } catch (error) {}
+
+    video.srcObject = null;
+  }
+
+  scannerBusy = false;
+}
+
+function closeScanner() {
+  stopScanner();
+
+  const overlay =
+    $('scannerOverlay');
+
+  if (overlay) {
+    overlay.remove();
+  }
+
+  document.body.style.overflow = '';
+
+  setScanMessage(
+    'Scanner ditutup.'
+  );
+}
+
+async function initScanner() {
+  if (currentPage === 'scan') {
+    openScanner();
+  }
+}
+
+
+/* =======================================================
+   MANUAL PAGE
+======================================================= */
+
+function manualHTML() {
+
+  return `
+
+    <div class="page">
+
+      <h1 class="page-title">
+        Absensi Manual
+      </h1>
+
+      <div class="page-subtitle">
+        Cari siswa kemudian pilih
+        status kehadirannya.
+      </div>
+
+
+      <div class="field search-box">
+
+        <input
+          id="studentSearch"
+          type="text"
+          oninput="renderManualList()"
+          placeholder="Cari nama, NIS, atau kelas"
+        >
+
+      </div>
+
+
+      <div id="manualList"></div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =======================================================
+   MANUAL LIST
+======================================================= */
+
+function renderManualList() {
+
+  const search =
+    (
+      $('studentSearch')?.value ||
+      ''
+    )
+    .toLowerCase()
+    .trim();
+
+
+  const students =
+    DATA.students
+      .filter(
+        function(student) {
+
+          const text =
+            [
+              student['Nama Siswa'],
+              student['NIS'],
+              student['Nama Kelas']
+            ]
+            .join(' ')
+            .toLowerCase();
+
+          return text.includes(
+            search
+          );
+
+        }
+      )
+      .slice(0, 80);
+
+
+  const container =
+    $('manualList');
+
+
+  if (!container) {
+
+    return;
+
+  }
+
+
+  if (!students.length) {
+
+    container.innerHTML =
+      `
+        <div class="empty">
+          Siswa tidak ditemukan.
+        </div>
+      `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    students
+      .map(
+        function(student) {
+
+          return `
+
+            <div class="card">
+
+              <div class="list-item">
+
+                <div class="item-main">
+
+                  <strong>
+                    ${esc(
+                      student['Nama Siswa']
+                    )}
+                  </strong>
+
+                  <span>
+                    ${esc(
+                      student['NIS']
+                    )}
+                    •
+                    ${esc(
+                      student['Nama Kelas']
+                    )}
+                  </span>
+
+                </div>
+
+
+                <button
+                  class="mini-btn"
+                  onclick="manualSave('${esc(
+                    student['ID Siswa']
+                  )}')"
+                >
+                  Catat
+                </button>
+
+              </div>
+
+            </div>
+
+          `;
+
+        }
+      )
+      .join('');
+
+}
+
+
+/* =======================================================
+   MANUAL SAVE
+======================================================= */
+
+async function manualSave(studentId) {
+
+  const student =
+    DATA.students.find(
+      student =>
+        student['ID Siswa'] ===
+        studentId
+    );
+
+
+  if (!student) {
+
+    return;
+
+  }
+
+
+  const status =
+    prompt(
+      'Masukkan status:\nHADIR / IZIN / SAKIT / ALFA',
+      'HADIR'
+    );
+
+
+  if (!status) {
+
+    return;
+
+  }
+
+
+  const normalized =
+    status
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    ![
+      'HADIR',
+      'IZIN',
+      'SAKIT',
+      'ALFA'
+    ].includes(normalized)
+  ) {
+
+    toast(
+      'Status tidak valid.'
+    );
+
+    return;
+
+  }
+
+
+  const note =
+    prompt(
+      'Keterangan (opsional):',
+      ''
+    ) || '';
+
+
+  showLoading(true);
+
+
+  try {
+
+    const result =
+      await server(
+        'saveManualAttendance',
+        sessionToken(),
+        studentId,
+        normalized,
+        note
+      );
+
+
+    toast(
+      result.message ||
+      'Absensi tersimpan.'
+    );
+
+
+    await refreshData();
+
+    renderManualList();
+
+
+  } catch (error) {
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  }
+
+
+  finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   HISTORY PAGE
+======================================================= */
+
+function historyHTML() {
+
+  return `
+
+    <div class="page">
+
+      <h1 class="page-title">
+        Riwayat
+      </h1>
+
+      <div class="page-subtitle">
+        Daftar absensi terbaru.
+      </div>
+
+
+      <div class="field search-box">
+
+        <input
+          id="historySearch"
+          type="text"
+          oninput="filterHistory()"
+          placeholder="Cari siswa, tanggal, atau status"
+        >
+
+      </div>
+
+
+      <div id="historyList">
+
+        ${historyRows(
+          DATA.attendance || []
+        )}
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =======================================================
+   HISTORY ROWS
+======================================================= */
+
+function historyRows(rows) {
+
+  if (!rows.length) {
+
+    return `
+      <div class="empty">
+        Belum ada data absensi.
+      </div>
+    `;
+
+  }
+
+
+  return rows
+    .slice(0, 200)
+    .map(
+      function(row) {
+
+        return `
+
+          <div class="card">
+
+            <div class="list-item">
+
+              <div class="item-main">
+
+                <strong>
+                  ${esc(
+                    row['Nama Siswa']
+                  )}
+                </strong>
+
+                <span>
+                  ${formatDate(
+                    row['Tanggal']
+                  )}
+
+                  •
+
+                  ${esc(
+                    row['Jam Scan']
+                  )}
+
+                  •
+
+                  ${esc(
+                    row['Status']
+                  )}
+
+                </span>
+
+
+                ${
+                  row['Keterangan']
+                    ? `
+                      <span>
+                        ${esc(
+                          row['Keterangan']
+                        )}
+                      </span>
+                    `
+                    : ''
+                }
+
+              </div>
+
+
+              <button
+                class="mini-btn delete"
+                onclick="deleteAttendance(
+                  '${esc(
+                    row['ID Absensi']
+                  )}'
+                )"
+              >
+                Hapus
+              </button>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+    )
+    .join('');
+
+}
+
+
+/* =======================================================
+   FILTER HISTORY
+======================================================= */
+
+function filterHistory() {
+
+  const search =
+    (
+      $('historySearch')?.value ||
+      ''
+    )
+    .toLowerCase()
+    .trim();
+
+
+  const filtered =
+    DATA.attendance.filter(
+      function(row) {
+
+        return Object
+          .values(row)
+          .join(' ')
+          .toLowerCase()
+          .includes(search);
+
+      }
+    );
+
+
+  const container =
+    $('historyList');
+
+
+  if (container) {
+
+    container.innerHTML =
+      historyRows(filtered);
+
+  }
+
+}
+
+
+/* =======================================================
+   DATE
+======================================================= */
+
+function formatDate(value) {
+
+  if (!value) {
+
+    return '';
+
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if (
+    isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return String(value)
+      .substring(0, 10);
+
+  }
+
+
+  return date.toLocaleDateString(
+    'id-ID',
+    {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }
+  );
+
+}
+
+
+/* =======================================================
+   DELETE ATTENDANCE
+======================================================= */
+
+async function deleteAttendance(id) {
+
+  const confirmDelete =
+    confirm(
+      'Hapus data absensi ini?'
+    );
+
+
+  if (!confirmDelete) {
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+
+  try {
+
+    const result =
+      await server(
+        'deleteAttendance',
+        id
+      );
+
+
+    toast(
+      result.message
+    );
+
+
+    await refreshData();
+
+    renderPage();
+
+
+  } catch (error) {
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  }
+
+
+  finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   DATA MASTER PAGE
+======================================================= */
+
+function dataHTML() {
+
+  return `
+
+    <div class="page">
+
+      <h1 class="page-title">
+        Data Master
+      </h1>
+
+      <div class="page-subtitle">
+        Kelola data siswa dan guru.
+      </div>
+
+
+      <!-- SISWA -->
+
+      <div class="card">
+
+        <div class="card-title">
+          Data Siswa
+          (${DATA.students.length})
+        </div>
+
+
+        <button
+          class="btn btn-primary"
+          onclick="openStudent()"
+        >
+          + Tambah Siswa
+        </button>
+
+
+        <div>
+          ${studentRows()}
+        </div>
+
+      </div>
+
+
+      <!-- GURU -->
+
+      <div class="card">
+
+        <div class="card-title">
+          Data Guru
+          (${DATA.teachers.length})
+        </div>
+
+
+        <button
+          class="btn btn-secondary"
+          onclick="openTeacher()"
+        >
+          + Tambah Guru
+        </button>
+
+
+        <div>
+          ${teacherRows()}
+        </div>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =======================================================
+   STUDENT ROWS
+======================================================= */
+
+function studentRows() {
+
+  if (!DATA.students.length) {
+
+    return `
+      <div class="empty">
+        Belum ada data siswa.
+      </div>
+    `;
+
+  }
+
+
+  return DATA.students
+    .slice(0, 110)
+    .map(
+      function(student) {
+
+        const safeData =
+          JSON.stringify(student)
+            .replace(
+              /'/g,
+              '&#39;'
+            );
+
+
+        return `
+
+          <div class="list-item">
+
+            <div class="item-main">
+
+              <strong>
+                ${esc(
+                  student['Nama Siswa']
+                )}
+              </strong>
+
+              <span>
+                ${esc(
+                  student['NIS']
+                )}
+
+                •
+
+                ${esc(
+                  student['Nama Kelas']
+                )}
+              </span>
+
+            </div>
+
+
+            <div class="item-actions">
+
+              <button
+                class="mini-btn"
+                onclick='openStudent(${safeData})'
+              >
+                Edit
+              </button>
+
+
+              <button
+                class="mini-btn delete"
+                onclick="removeStudent('${esc(
+                  student['ID Siswa']
+                )}')"
+              >
+                Hapus
+              </button>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+    )
+    .join('');
+
+}
+
+
+/* =======================================================
+   TEACHER ROWS
+======================================================= */
+
+function teacherRows() {
+
+  if (!DATA.teachers.length) {
+
+    return `
+      <div class="empty">
+        Belum ada data guru.
+      </div>
+    `;
+
+  }
+
+
+  return DATA.teachers
+    .map(
+      function(teacher) {
+
+        const safeData =
+          JSON.stringify(teacher)
+            .replace(
+              /'/g,
+              '&#39;'
+            );
+
+
+        return `
+
+          <div class="list-item">
+
+            <div class="item-main">
+
+              <strong>
+                ${esc(
+                  teacher['Nama Guru']
+                )}
+              </strong>
+
+              <span>
+                ${esc(
+                  teacher['NIP']
+                )}
+
+                •
+
+                ${esc(
+                  teacher['Mata Pelajaran']
+                )}
+              </span>
+
+            </div>
+
+
+            <div class="item-actions">
+
+              <button
+                class="mini-btn"
+                onclick='openTeacher(${safeData})'
+              >
+                Edit
+              </button>
+
+
+              <button
+                class="mini-btn delete"
+                onclick="removeTeacher('${esc(
+                  teacher['ID Guru']
+                )}')"
+              >
+                Hapus
+              </button>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+    )
+    .join('');
+
+}
+
+
+/* =======================================================
+   CLASS OPTIONS
+======================================================= */
+
+function classOptions(
+  selectedId
+) {
+
+  if (!DATA.classes.length) {
+
+    return `
+      <option value="">
+        Tidak ada kelas
+      </option>
+    `;
+
+  }
+
+
+  return DATA.classes
+    .map(
+      function(classData) {
+
+        const id =
+          classData['ID Kelas'] ||
+          '';
+
+        const name =
+          classData['Nama Kelas'] ||
+          id;
+
+
+        return `
+
+          <option
+            value="${esc(id)}"
+            data-name="${esc(name)}"
+            ${
+              String(selectedId || '') ===
+              String(id)
+                ? 'selected'
+                : ''
+            }
+          >
+            ${esc(name)}
+          </option>
+
+        `;
+
+      }
+    )
+    .join('');
+
+}
+
+
+/* =======================================================
+   STUDENT MODAL
+======================================================= */
+
+function openStudent(
+  student = {}
+) {
+
+  $('modal').innerHTML = `
+
+    <div class="modal-box">
+
+      <div class="modal-header">
+
+        <div class="modal-title">
+
+          ${
+            student['ID Siswa']
+              ? 'Edit Siswa'
+              : 'Tambah Siswa'
+          }
+
+        </div>
+
+
+        <button
+          class="close-btn"
+          onclick="closeModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          NIS
+        </label>
+
+        <input
+          id="fNis"
+          value="${esc(
+            student['NIS'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          NAMA SISWA
+        </label>
+
+        <input
+          id="fName"
+          value="${esc(
+            student['Nama Siswa'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          JENIS KELAMIN
+        </label>
+
+        <select id="fJk">
+
+          <option
+            value="L"
+            ${
+              student['JK'] === 'L'
+                ? 'selected'
+                : ''
+            }
+          >
+            Laki-laki
+          </option>
+
+          <option
+            value="P"
+            ${
+              student['JK'] === 'P'
+                ? 'selected'
+                : ''
+            }
+          >
+            Perempuan
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          KELAS
+        </label>
+
+        <select
+          id="fClass"
+          onchange="syncClassName()"
+        >
+
+          ${classOptions(
+            student['ID Kelas']
+          )}
+
+        </select>
+
+      </div>
+
+
+      <input
+        type="hidden"
+        id="fClassName"
+        value="${esc(
+          student['Nama Kelas'] || ''
+        )}"
+      >
+
+
+      <div class="field">
+
+        <label>
+          NAMA ORANG TUA
+        </label>
+
+        <input
+          id="fParent"
+          value="${esc(
+            student['Nama Orang Tua'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          NO. WHATSAPP
+        </label>
+
+        <input
+          id="fWa"
+          value="${esc(
+            student['No. WhatsApp'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <button
+        class="btn btn-primary"
+        onclick='saveStudent(${JSON.stringify(student)})'
+      >
+        SIMPAN
+      </button>
+
+    </div>
+
+  `;
+
+
+  $('modal')
+    .classList
+    .remove('hidden');
+
+
+  syncClassName();
+
+}
+
+
+/* =======================================================
+   SYNC CLASS
+======================================================= */
+
+function syncClassName() {
+
+  const select =
+    $('fClass');
+
+
+  if (!select) {
+
+    return;
+
+  }
+
+
+  const option =
+    select
+      .selectedOptions[0];
+
+
+  if (option) {
+
+    $('fClassName')
+      .value =
+      option.dataset.name ||
+      option.textContent.trim();
+
+  }
+
+}
+
+
+/* =======================================================
+   SAVE STUDENT
+======================================================= */
+
+async function saveStudent(
+  oldStudent
+) {
+
+  const data = {
+
+    id:
+      oldStudent['ID Siswa'] ||
+      '',
+
+    nis:
+      $('fNis').value,
+
+    name:
+      $('fName').value,
+
+    jk:
+      $('fJk').value,
+
+    classId:
+      $('fClass').value,
+
+    className:
+      $('fClassName').value,
+
+    parent:
+      $('fParent').value,
+
+    whatsapp:
+      $('fWa').value
+
+  };
+
+
+  if (
+    !data.name.trim()
+  ) {
+
+    toast(
+      'Nama siswa wajib diisi.'
+    );
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+
+  try {
+
+    let result;
+
+
+    if (
+      oldStudent['ID Siswa']
+    ) {
+
+      result =
+        await server(
+          'updateStudent',
+          data
+        );
+
+    } else {
+
+      result =
+        await server(
+          'createStudent',
+          data
+        );
+
+    }
+
+
+    toast(
+      result.message
+    );
+
+
+    closeModal();
+
+    await refreshData();
+
+    renderPage();
+
+
+  } catch (error) {
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  }
+
+
+  finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   DELETE STUDENT
+======================================================= */
+
+async function removeStudent(
+  id
+) {
+
+  if (
+    !confirm(
+      'Hapus siswa ini?'
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+
+  try {
+
+    const result =
+      await server(
+        'deleteStudent',
+        id
+      );
+
+
+    toast(
+      result.message
+    );
+
+
+    await refreshData();
+
+    renderPage();
+
+
+  } catch (error) {
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  }
+
+
+  finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   TEACHER MODAL
+======================================================= */
+
+function openTeacher(
+  teacher = {}
+) {
+
+  $('modal').innerHTML = `
+
+    <div class="modal-box">
+
+      <div class="modal-header">
+
+        <div class="modal-title">
+
+          ${
+            teacher['ID Guru']
+              ? 'Edit Guru'
+              : 'Tambah Guru'
+          }
+
+        </div>
+
+
+        <button
+          class="close-btn"
+          onclick="closeModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          NIP
+        </label>
+
+        <input
+          id="tNip"
+          value="${esc(
+            teacher['NIP'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          NAMA GURU
+        </label>
+
+        <input
+          id="tName"
+          value="${esc(
+            teacher['Nama Guru'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          MATA PELAJARAN
+        </label>
+
+        <input
+          id="tSubject"
+          value="${esc(
+            teacher['Mata Pelajaran'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          EMAIL
+        </label>
+
+        <input
+          id="tEmail"
+          type="email"
+          value="${esc(
+            teacher['Email'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          NO. WHATSAPP
+        </label>
+
+        <input
+          id="tWa"
+          value="${esc(
+            teacher['No. WhatsApp'] || ''
+          )}"
+        >
+
+      </div>
+
+
+      <button
+        class="btn btn-primary"
+        onclick='saveTeacher(${JSON.stringify(teacher)})'
+      >
+        SIMPAN
+      </button>
+
+    </div>
+
+  `;
+
+
+  $('modal')
+    .classList
+    .remove('hidden');
+
+}
+
+
+/* =======================================================
+   SAVE TEACHER
+======================================================= */
+
+async function saveTeacher(
+  oldTeacher
+) {
+
+  const data = {
+
+    id:
+      oldTeacher['ID Guru'] ||
+      '',
+
+    nip:
+      $('tNip').value,
+
+    name:
+      $('tName').value,
+
+    subject:
+      $('tSubject').value,
+
+    email:
+      $('tEmail').value,
+
+    whatsapp:
+      $('tWa').value
+
+  };
+
+
+  if (
+    !data.name.trim()
+  ) {
+
+    toast(
+      'Nama guru wajib diisi.'
+    );
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+
+  try {
+
+    let result;
+
+
+    if (
+      oldTeacher['ID Guru']
+    ) {
+
+      result =
+        await server(
+          'updateTeacher',
+          data
+        );
+
+    } else {
+
+      result =
+        await server(
+          'createTeacher',
+          data
+        );
+
+    }
+
+
+    toast(
+      result.message
+    );
+
+
+    closeModal();
+
+    await refreshData();
+
+    renderPage();
+
+
+  } catch (error) {
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  }
+
+
+  finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   DELETE TEACHER
+======================================================= */
+
+async function removeTeacher(
+  id
+) {
+
+  if (
+    !confirm(
+      'Hapus guru ini?'
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+
+  try {
+
+    const result =
+      await server(
+        'deleteTeacher',
+        id
+      );
+
+
+    toast(
+      result.message
+    );
+
+
+    await refreshData();
+
+    renderPage();
+
+
+  } catch (error) {
+
+    toast(
+      error.message ||
+      String(error)
+    );
+
+  }
+
+
+  finally {
+
+    showLoading(false);
+
+  }
+
+}
+
+
+/* =======================================================
+   CLOSE MODAL
+======================================================= */
+
+function closeModal() {
+
+  $('modal')
+    .classList
+    .add('hidden');
+
+  $('modal').innerHTML =
+    '';
+
+}
+
+
+/* =======================================================
+   SESSION USER
+======================================================= */
+
+function sessionUser() {
+
+  try {
+
+    const data =
+      JSON.parse(
+        sessionStorage.getItem(
+          'absensi_login'
+        ) || '{}'
+      );
+
+    return (
+      data.username ||
+      'SALMA'
+    );
+
+  } catch (error) {
+
+    return 'SALMA';
+
+  }
+
+}
+
+
+/* =======================================================
+   AUTO LOGIN SESSION
+======================================================= */
+
+document.addEventListener(
+  'DOMContentLoaded',
+  function() {
+
+    const saved =
+      sessionStorage.getItem(
+        'absensi_login'
+      );
+
+
+    if (saved) {
+
+      try {
+
+        const result =
+          JSON.parse(saved);
+
+
+        $('loginScreen')
+          .classList
+          .add('hidden');
+
+
+        $('appScreen')
+          .classList
+          .remove('hidden');
+
+
+        $('welcomeUser')
+          .textContent =
+          (
+            result.username ||
+            'SALMA'
+          ) +
+          ' • ' +
+          (
+            result.role ||
+            'ADMIN'
+          );
+
+
+        refreshData()
+          .then(
+            function() {
+
+              go('dashboard');
+
+            }
+          )
+          .catch(
+            function() {
+
+              go('dashboard');
+
+            }
+          );
+
+
+        return;
+
+      } catch (error) {
+
+        sessionStorage.removeItem(
+          'absensi_login'
+        );
+
+      }
+
+    }
+
+
+    /*
+      ENTER pada password = login
+    */
+
+    $('loginPass')
+      .addEventListener(
+        'keydown',
+        function(event) {
+
+          if (
+            event.key ===
+            'Enter'
+          ) {
+
+            login();
+
+          }
+
+        }
+      );
+
+  }
+);
+
+</script>
+
+</body>
+</html>
